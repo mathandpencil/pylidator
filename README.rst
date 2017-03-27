@@ -23,3 +23,26 @@ Typical contents for this file would include an overview of the project, basic
 usage examples, etc. Generally, including the project changelog in here is not
 a good idea, although a simple "What's New" section for the most recent version
 may be appropriate.
+
+
+----
+
+Validators
+----------
+
+A validator method checks the validity of one or a closely-related group of 
+assertions about the data.  They all look basically like this:
+
+    @pylidator.validator(of='something')
+    def something_is_true(data):
+        messages = []
+
+        if desired_condition_about_field_is_untrue:
+            messages.append({'affected_field': "Should be different like this."}
+
+        if another_desired_condition_about_the_object_is_untrue:
+            messages.append('I wish this changed.')
+
+        return messages
+
+(Alternately, you can return just a dict of {field: message} items.)
