@@ -31,7 +31,7 @@ Validators
 ----------
 
 A validator method checks the validity of one or a closely-related group of 
-assertions about the data.  They all look basically like this:
+assertions about the data.  They all look basically like this::
 
     @pylidator.validator(of='something')
     def something_is_true(data):
