@@ -8,10 +8,16 @@ class ContextNotAvailableError(KeyError):
     pass
 
 
+
 class Error(dict):
     ERROR = 'ERROR'
     WARN = 'WARN'
     WARNING = 'WARN'
+
+    LEVELS = [
+        ERROR,
+        WARN
+    ]
 
 
 class ErrorLedger(object):
@@ -86,7 +92,7 @@ class ErrorLedger(object):
         return self._is_valid
 
 
-def validate(obj, error_validators=None, warning_validators=None, providers=None, extra_context=None,
+def validate(obj, validators=None, providers=None, extra_context=None,
             field_name_mapper=None, validation_type=None):
     ledger = ErrorLedger(default_object_data={'validation_type': validation_type})
 
@@ -132,15 +138,12 @@ def validate(obj, error_validators=None, warning_validators=None, providers=None
     }
 
     validators_applied = []
-    if error_validators:
-        for v in unique_everseen(error_validators):
-            is_valid = v(level=ledger.ERROR, **validator_func_kwargs)
-            validators_applied.append(u"{} {}".format(v.__name__, 'OK' if is_valid else 'ERROR'))
+    for level, level_validators in validators.items():
+        assert level in Error.LEVELS, u"Level `{}` is not recognized.".format(level)
 
-    if warning_validators:
-        for v in unique_everseen(warning_validators):
-            is_valid = v(level=ledger.WARN, **validator_func_kwargs)
-            validators_applied.append(u"{} {}".format(v.__name__, 'OK' if is_valid else 'WARN'))
+        for v in unique_everseen(level_validators):
+            is_valid = v(level=level, **validator_func_kwargs)
+            validators_applied.append(u"{} {}".format(v.__name__, 'OK' if is_valid else str(level)))
 
     logger.debug(u"validate complete ({} err, {} warn): {}".format(
         len(ledger.get_errors()), len(ledger.get_warnings()), ", ".join(validators_applied)))
