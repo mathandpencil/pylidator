@@ -1,95 +1,10 @@
 import logging
 from functools import wraps
 
+from .error_ledger import Error, ErrorLedger
+from . import exceptions
+
 logger = logging.getLogger(__name__)
-
-
-class ContextNotAvailableError(KeyError):
-    pass
-
-
-
-class Error(dict):
-    ERROR = 'ERROR'
-    WARN = 'WARN'
-    WARNING = 'WARN'
-
-    LEVELS = [
-        ERROR,
-        WARN
-    ]
-
-
-class ErrorLedger(object):
-    ERROR = 'ERROR'
-    WARN = 'WARN'
-    WARNING = 'WARN'
-
-    def __init__(self, default_object_data=None):
-        self._errors = []
-        self._is_valid = True
-        self._default_object_data = default_object_data if default_object_data is not None else {}
-
-    @staticmethod
-    def create_error_object(message, level, object_data=None):
-        if isinstance(message, dict):
-            assert len(message) == 1, "Don't currently support multi key dicts inside lists."
-
-            for field_name, error in message.items():
-                error = u'{}: {}'.format(field_name, error)
-                new_item = Error({'message': error, 'field': field_name})
-                break
-
-        elif isinstance(message, basestring):
-            new_item = Error({'message': message})
-        else:
-            raise ValueError(u"Message is required and must be a string or a dict: {}".format(message))
-
-        new_item['level'] = level
-        if object_data:
-            new_item.update(object_data)
-
-        return new_item
-
-    def add_message(self, message, level, object_data=None):
-        new_item = self.create_error_object(message, level, object_data)
-        new_item.update(self._default_object_data)
-        self.add_object(new_item)
-
-    def add_object(self, new_item_data):
-        new_item = Error()
-        new_item.update(self._default_object_data)
-        new_item.update(new_item_data)
-
-        new_item['level']
-        new_item['message']
-
-        logger.debug(u'{} {}'.format(new_item['level'], new_item['message']))
-
-        self._errors.append(new_item)
-        if new_item['level'] == self.ERROR:
-            self._is_valid = False
-
-    def get_full_results(self):
-        return self._errors
-
-    def get_error_messages(self):
-        return list(unique_everseen([e['message'] for e in self._errors if e['level'] == e.ERROR]))
-
-    def get_descriptive_error_messages(self):
-        return list([u"{} {}".format(e['description'], e['message']) for e in self._errors if e['level'] == e.ERROR])
-
-    def get_warning_messages(self):
-        return list(unique_everseen([e['message'] for e in self._errors if e['level'] == e.WARN]))
-
-    def get_errors(self):
-        return [e for e in self._errors if e['level'] == e.ERROR]
-
-    def get_warnings(self):
-        return [e for e in self._errors if e['level'] == e.WARN]
-
-    def is_valid(self):
-        return self._is_valid
 
 
 def validate(obj, validators=None, providers=None, extra_context=None,
@@ -97,35 +12,34 @@ def validate(obj, validators=None, providers=None, extra_context=None,
     ledger = ErrorLedger(default_object_data={'validation_type': validation_type})
 
     def _process_validator_results(ret, level, object_data, obj):
-        # logger.debug(u'Validating {}.'.format(ret))
+        """ Process the return of a user-supllied `validator`.  Accepts lists, dicts, and strings. """
+
+        # The first object in the tuple is the one being validated
+        if isinstance(obj, tuple):
+            real_obj = obj[0]
+        else:
+            real_obj = obj
+
+        # if field_name_mapper is None:
+        #     custom_field_name_mapper = None
+        # else:
+        #     custom_field_name_mapper = lambda field_name: field_name_mapper(real_obj, field_name)
+
         if not ret:
             is_valid = True
             return is_valid
 
         if isinstance(ret, basestring):
-            ledger.add_message(ret, level, object_data)
+            ledger.add_message(ret, level, object_data, custom_field_name_mapper=field_name_mapper)
             is_valid = False
+
         elif isinstance(ret, dict):
-            # The first object in the tuple is the one being validated
-            if isinstance(obj, tuple):
-                obj = obj[0]
+            ledger.add_message(ret, level, object_data, custom_field_name_mapper=field_name_mapper)
+            if len(ret) > 0: is_valid = False
 
-            for field_name, error in ret.items():
-                # verbose_field_name = ledger.map_field_name_to_verbose_name(obj, field_name)
-                object_data_with_field = object_data.copy()
-                object_data_with_field['field'] = field_name
-                verbose_name = field_name_mapper(obj, field_name)
-                if verbose_name is None:
-                    from titlecase import titlecase
-                    verbose_name = titlecase(' '.join(field_name.split('_')))
-
-                object_data_with_field['verbose_name'] = verbose_name
-                error = u'{}: {}'.format(verbose_name, error)
-                ledger.add_message(error, level, object_data_with_field)
-                is_valid = False
         else:
             for error in ret:
-                ledger.add_message(error, level, object_data)
+                ledger.add_message(error, level, object_data, custom_field_name_mapper=field_name_mapper)
                 is_valid = False
 
         return is_valid
@@ -156,8 +70,11 @@ def validator(of, requires=None, affects=None):
 
     `of` specifies what provider the validator should use.   The `validate` call needs an item in `providers`
          that matches `of`.
-    `requires` can add additional context items, such as constants service.
-    `affects` is passed through to results, as additional guidance for resolving errors.
+    `requires` (optional) can add additional context items, such as the current time or other services that can supply
+         data or settings to the validator.  The requirement is fulfilled by passing `extra_context` to the `validate`
+         call, containing any items that are used in a `requires`.
+    `affects` (optional) is simply passed through to results.  It can be used as guidance for UI/error reporting for
+         helping to resolve any resultant errors.
     """
 
     def decorator(validator_func):
@@ -175,7 +92,7 @@ def validator(of, requires=None, affects=None):
                     try:
                         kwargs[extra_context_item] = extra_context[extra_context_item]
                     except KeyError:
-                        raise ContextNotAvailableError(
+                        raise exceptions.ContextNotAvailableError(
                             u"{} is not available in the validator context.".format(extra_context_item))
 
             # logger.debug(u'Validating {} of {} (of={}).'.format(validator_func, obj, of))
@@ -214,22 +131,6 @@ def validator(of, requires=None, affects=None):
 
         return actually_run_validator_func
     return decorator
-
-
-FIELD_IS_REQUIRED = "Field is required."
-
-
-def attr_must_be_set(obj, attr, errors):
-    def impl(obj, attr, errors):
-        val = getattr(obj, attr)
-        if val is None:
-            errors.append({attr: FIELD_IS_REQUIRED})
-
-    if isinstance(attr, basestring):
-        impl(obj, attr, errors)
-    else:
-        for item in attr:
-            impl(obj, item, errors)
 
 
 def format_results(validator_results):

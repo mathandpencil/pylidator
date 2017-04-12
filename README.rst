@@ -1,36 +1,16 @@
 pylidator
 =========
 
-A sample project that exists as an aid to the `Python Packaging User Guide
-<https://packaging.python.org>`_'s `Tutorial on Packaging and Distributing
-Projects <https://packaging.python.org/en/latest/distributing.html>`_.
+pylidator is a validation framework for Python projects.
 
-This projects does not aim to cover best practices for Python project
-development as a whole. For example, it does not provide guidance or tool
-recommendations for version control, documentation, or testing.
-
-----
-
-This is the README file for the project.
-
-The file should use UTF-8 encoding and be written using `reStructuredText
-<http://docutils.sourceforge.net/rst.html>`_. It
-will be used to generate the project webpage on PyPI and will be displayed as
-the project homepage on common code-hosting services, and should be written for
-that purpose.
-
-Typical contents for this file would include an overview of the project, basic
-usage examples, etc. Generally, including the project changelog in here is not
-a good idea, although a simple "What's New" section for the most recent version
-may be appropriate.
-
-
-----
+Many business systems have complex validation rules.  This library provides a method of organizing those rules for
+convenience and testability.  A `validator` method is written for each rule (or group of rules), which simply returns a
+list of errors if any are found.
 
 Validators
 ----------
 
-A validator method checks the validity of one or a closely-related group of 
+A validator method checks the validity of one or a closely-related group of
 assertions about the data.  They all look basically like this::
 
     @pylidator.validator(of='something')
@@ -46,3 +26,15 @@ assertions about the data.  They all look basically like this::
         return messages
 
 (Alternately, you can return just a dict of {field: message} items.)
+
+@pylidator.validator takes several optional parameters:
+
+    @pylidator.validator(of, requires=None, affects=None)
+
+    `of` specifies what provider the validator should use.   The `validate` call needs an item in `providers`
+         that matches `of`.
+    `requires` (optional) can add additional context items, such as the current time or other services that can supply
+         data or settings to the validator.  The requirement is fulfilled by passing `extra_context` to the `validate`
+         call, containing any items that are used in a `requires`.
+    `affects` (optional) is simply passed through to results.  It can be used as guidance for UI/error reporting for
+         helping to resolve any resultant errors.
