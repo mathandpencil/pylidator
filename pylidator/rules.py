@@ -53,7 +53,7 @@ def field_must_be_none(obj, attr, errors):
     for item in yield_all(attr):
         val = getattr(obj, attr)
         if val is not None:
-            errors.append({attr: messages.FIELD_MUST_BE_NONE})
+            errors.append({attr: messages.FIELD_MUST_BE_BLANK})
 
 
 def date_is_not_after(obj, attr, errors, now, allow_none=False):
