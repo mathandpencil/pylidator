@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 def validate(obj, validators=None, providers=None, extra_context=None,
             field_name_mapper=None, validation_type=None):
-    ledger = ErrorLedger(default_object_data={'validation_type': validation_type})
+
+    ledger = ErrorLedger(
+        default_object_data={'validation_type': validation_type},
+        custom_field_name_mapper=field_name_mapper)
 
     def _process_validator_results(ret, level, object_data, obj):
         """ Process the return of a user-supllied `validator`.  Accepts lists, dicts, and strings. """
@@ -20,26 +23,21 @@ def validate(obj, validators=None, providers=None, extra_context=None,
         else:
             real_obj = obj
 
-        # if field_name_mapper is None:
-        #     custom_field_name_mapper = None
-        # else:
-        #     custom_field_name_mapper = lambda field_name: field_name_mapper(real_obj, field_name)
-
         if not ret:
             is_valid = True
             return is_valid
 
         if isinstance(ret, basestring):
-            ledger.add_message(ret, level, object_data, custom_field_name_mapper=field_name_mapper)
+            ledger.add_message(ret, level, object_data)
             is_valid = False
 
         elif isinstance(ret, dict):
-            ledger.add_message(ret, level, object_data, custom_field_name_mapper=field_name_mapper)
+            ledger.add_message(ret, level, object_data)
             if len(ret) > 0: is_valid = False
 
         else:
             for error in ret:
-                ledger.add_message(error, level, object_data, custom_field_name_mapper=field_name_mapper)
+                ledger.add_message(error, level, object_data)
                 is_valid = False
 
         return is_valid

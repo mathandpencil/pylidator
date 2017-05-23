@@ -19,17 +19,22 @@ class ErrorLedger(object):
     WARN = 'WARN'
     WARNING = 'WARN'
 
-    def __init__(self, default_object_data=None):
+    def __init__(self, default_object_data=None, custom_field_name_mapper=None):
+        """
+        `custom_field_name_mapper` is an optional callable that takes the field name and returns
+            a verbose_name for the field.
+        """
         self._errors = []
         self._is_valid = True
         self._default_object_data = default_object_data if default_object_data is not None else {}
+        self._custom_field_name_mapper = custom_field_name_mapper
 
-    def create_error_object(self, message, level, object_data=None, custom_field_name_mapper=None):
+    def create_error_object(self, message, level, object_data=None):
         if isinstance(message, dict):
             assert len(message) == 1, "Don't currently support multi key dicts inside lists."
 
             for field_name, error in message.items():
-                verbose_name = self.map_field_name_to_verbose_name(field_name, custom_field_name_mapper)
+                verbose_name = self.map_field_name_to_verbose_name(field_name)
                 error = u'{}: {}'.format(verbose_name, error)
                 new_item = Error({'message': error, 'field': field_name, 'verbose_name': verbose_name})
                 break
@@ -46,18 +51,18 @@ class ErrorLedger(object):
 
         return new_item
 
-    def map_field_name_to_verbose_name(self, field_name, custom_field_name_mapper=None):
+    def map_field_name_to_verbose_name(self, field_name):
         verbose_name = None
 
-        if custom_field_name_mapper is not None:
-            verbose_name = custom_field_name_mapper(field_name)
+        if self._custom_field_name_mapper is not None:
+            verbose_name = self._custom_field_name_mapper(field_name)
         if verbose_name is None:
             from titlecase import titlecase
             verbose_name = titlecase(' '.join(field_name.split('_')))
         return verbose_name
 
-    def add_message(self, message, level, object_data=None, custom_field_name_mapper=None):
-        new_item = self.create_error_object(message, level, object_data, custom_field_name_mapper)
+    def add_message(self, message, level, object_data=None):
+        new_item = self.create_error_object(message, level, object_data)
         new_item.update(self._default_object_data)
         self.add_object(new_item)
 
