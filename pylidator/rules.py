@@ -17,7 +17,8 @@ def any_field_must_be_set(obj, attr, errors):
         field_must_be_set(obj, attr, errors)
     else:
         for item in attr:
-            if item is not None:
+            val = getattr(obj, item)
+            if val is not None:
                 return
 
         # All are None, so all get errors.
