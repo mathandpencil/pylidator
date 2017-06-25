@@ -66,3 +66,14 @@ def date_is_not_after(obj, attr, errors, now, allow_none=False):
 
     if val > now:
         errors.append({attr: messages.DATE_IS_NOT_AFTER})
+
+
+def date_is_on_or_after(obj, attr, min_date, errors, allow_none=False):
+    val = getattr(obj, attr)
+    if val is None:
+        if not allow_none:
+            errors.append({attr: messages.FIELD_IS_REQUIRED})
+        return
+
+    if not val >= min_date:
+        errors.append({attr: messages.DATE_IS_ON_OR_AFTER})
