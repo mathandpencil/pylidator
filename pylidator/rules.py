@@ -57,23 +57,23 @@ def field_must_be_none(obj, attr, errors):
             errors.append({attr: messages.FIELD_MUST_BE_BLANK})
 
 
-def date_is_not_after(obj, attr, errors, now, allow_none=False):
+def date_is_not_after(obj, attr, errors, now, allow_none=False, is_inclusive=False):
     val = getattr(obj, attr)
     if val is None:
         if not allow_none:
             errors.append({attr: messages.FIELD_IS_REQUIRED})
         return
 
-    if val > now:
+    if (val == now and not is_inclusive) or val > now:
         errors.append({attr: messages.DATE_IS_NOT_AFTER})
 
 
-def date_is_on_or_after(obj, attr, min_date, errors, allow_none=False):
+def date_is_not_before(obj, attr, errors, now, allow_none=False, is_inclusive=False):
     val = getattr(obj, attr)
     if val is None:
         if not allow_none:
             errors.append({attr: messages.FIELD_IS_REQUIRED})
         return
 
-    if not val >= min_date:
-        errors.append({attr: messages.DATE_IS_ON_OR_AFTER})
+    if (val == now and not is_inclusive) or val < now:
+        errors.append({attr: messages.DATE_IS_NOT_BEFORE})
