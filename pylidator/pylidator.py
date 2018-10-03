@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from six import string_types
 
 from .error_ledger import Error, ErrorLedger
 from . import exceptions
@@ -27,7 +28,7 @@ def validate(obj, validators=None, providers=None, extra_context=None,
             is_valid = True
             return is_valid
 
-        if isinstance(ret, basestring):
+        if isinstance(ret, string_types):
             ledger.add_message(ret, level, object_data)
             is_valid = False
 
@@ -82,7 +83,7 @@ def validator(of, requires=None, affects=None):
         def actually_run_validator_func(obj, process_validator_results, providers, extra_context, level):
             kwargs = {}
             if requires:
-                if isinstance(requires, basestring):
+                if isinstance(requires, string_types):
                     requires_list = requires.split()
                 else:
                     requires_list = requires
@@ -152,12 +153,12 @@ def unique_everseen(iterable, key=None):
     "List unique elements, preserving order. Remember all elements ever seen."
     # unique_everseen('AAAABBBCCDAABBB') --> A B C D
     # unique_everseen('ABBCcAD', str.lower) --> A B C D
-    from itertools import ifilterfalse
+    from future.moves.itertools import filterfalse
 
     seen = set()
     seen_add = seen.add
     if key is None:
-        for element in ifilterfalse(seen.__contains__, iterable):
+        for element in filterfalse(seen.__contains__, iterable):
             seen_add(element)
             yield element
     else:

@@ -1,5 +1,7 @@
 import logging
 
+from six import string_types
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +41,7 @@ class ErrorLedger(object):
                 new_item = Error({'message': error, 'field': field_name, 'verbose_name': verbose_name})
                 break
 
-        elif isinstance(message, basestring):
+        elif isinstance(message, string_types):
             new_item = Error({'message': message})
 
         else:
@@ -101,3 +103,45 @@ class ErrorLedger(object):
     def is_valid(self):
         return self._is_valid
 
+    def get_django_validation_formatted_errors(self):
+        ret = {}
+        for e in self._errors:
+            field = e.get('field', 'non_field_errors')
+            level = e['level']
+
+            try:
+                d = ret[level]
+            except KeyError:
+                d = ret[level] = {}
+
+            try:
+                d2 = d[field]
+            except KeyError:
+                d2 = d[field] = []
+
+            prefixToRemove = e.get('verbose_name', '') + ': '
+            if e['message'].startswith(prefixToRemove):
+                d2.append(e['message'][len(prefixToRemove):])
+            else:
+                d2.append(e['message'])
+
+        return ret
+
+def unique_everseen(iterable, key=None):
+    "List unique elements, preserving order. Remember all elements ever seen."
+    # unique_everseen('AAAABBBCCDAABBB') --> A B C D
+    # unique_everseen('ABBCcAD', str.lower) --> A B C D
+    from itertools import filterfalse
+
+    seen = set()
+    seen_add = seen.add
+    if key is None:
+        for element in filterfalse(seen.__contains__, iterable):
+            seen_add(element)
+            yield element
+    else:
+        for element in iterable:
+            k = key(element)
+            if k not in seen:
+                seen_add(k)
+                yield element
