@@ -1,6 +1,7 @@
 from . import messages
 from .utils import yield_all
 
+from six import string_types
 
 def any_field_must_be_set(obj, attr, errors):
     """
@@ -13,7 +14,7 @@ def any_field_must_be_set(obj, attr, errors):
     `errors` result list to add any validation messages
     """
 
-    if isinstance(attr, str):
+    if isinstance(attr, string_types):
         field_must_be_set(obj, attr, errors)
     else:
         for item in attr:

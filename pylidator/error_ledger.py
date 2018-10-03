@@ -1,5 +1,7 @@
 import logging
 
+from six import string_types
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +41,7 @@ class ErrorLedger(object):
                 new_item = Error({'message': error, 'field': field_name, 'verbose_name': verbose_name})
                 break
 
-        elif isinstance(message, str):
+        elif isinstance(message, string_types):
             new_item = Error({'message': message})
 
         else:

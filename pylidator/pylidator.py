@@ -1,5 +1,6 @@
 import logging
 from functools import wraps
+from six import string_types
 
 from .error_ledger import Error, ErrorLedger
 from . import exceptions
@@ -27,7 +28,7 @@ def validate(obj, validators=None, providers=None, extra_context=None,
             is_valid = True
             return is_valid
 
-        if isinstance(ret, str):
+        if isinstance(ret, string_types):
             ledger.add_message(ret, level, object_data)
             is_valid = False
 
@@ -82,7 +83,7 @@ def validator(of, requires=None, affects=None):
         def actually_run_validator_func(obj, process_validator_results, providers, extra_context, level):
             kwargs = {}
             if requires:
-                if isinstance(requires, str):
+                if isinstance(requires, string_types):
                     requires_list = requires.split()
                 else:
                     requires_list = requires
