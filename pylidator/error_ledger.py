@@ -39,7 +39,7 @@ class ErrorLedger(object):
                 new_item = Error({'message': error, 'field': field_name, 'verbose_name': verbose_name})
                 break
 
-        elif isinstance(message, basestring):
+        elif isinstance(message, str):
             new_item = Error({'message': message})
 
         else:

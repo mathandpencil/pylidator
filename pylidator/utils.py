@@ -4,7 +4,7 @@ def yield_all(str_or_iter):
     def list_like(v):
        """Return True if v is a non-string sequence and is iterable. Note that
        not all objects with getitem() have the iterable attribute"""
-       if hasattr(v, '__iter__') and not isinstance(v, basestring):
+       if hasattr(v, '__iter__') and not isinstance(v, str):
            return True
        else:
            #This will happen for most atomic types like numbers and strings

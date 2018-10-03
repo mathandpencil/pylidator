@@ -13,7 +13,7 @@ def any_field_must_be_set(obj, attr, errors):
     `errors` result list to add any validation messages
     """
 
-    if isinstance(attr, basestring):
+    if isinstance(attr, str):
         field_must_be_set(obj, attr, errors)
     else:
         for item in attr:
