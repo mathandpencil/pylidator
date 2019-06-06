@@ -52,13 +52,13 @@ def validate(obj, validators=None, providers=None, extra_context=None,
 
     validators_applied = []
     for level, level_validators in validators.items():
-        assert level in Error.LEVELS, u"Level `{}` is not recognized.".format(level)
+        assert level in Error.LEVELS, "Level `{}` is not recognized.".format(level)
 
         for v in unique_everseen(level_validators):
             is_valid = v(level=level, **validator_func_kwargs)
-            validators_applied.append(u"{} {}".format(v.__name__, 'OK' if is_valid else str(level)))
+            validators_applied.append("{} {}".format(v.__name__, 'OK' if is_valid else str(level)))
 
-    logger.debug(u"validate complete ({} err, {} warn): {}".format(
+    logger.debug("validate complete ({} err, {} warn): {}".format(
         len(ledger.get_errors()), len(ledger.get_warnings()), ", ".join(validators_applied)))
     return ledger #{'is_valid': ledger.is_valid(), 'errors': ledger.get_errors()}
 
@@ -92,7 +92,7 @@ def validator(of, requires=None, affects=None):
                         kwargs[extra_context_item] = extra_context[extra_context_item]
                     except KeyError:
                         raise exceptions.ContextNotAvailableError(
-                            u"{} is not available in the validator context.".format(extra_context_item))
+                            "{} is not available in the validator context.".format(extra_context_item))
 
             # logger.debug(u'Validating {} of {} (of={}).'.format(validator_func, obj, of))
             is_valid = True
@@ -109,11 +109,11 @@ def validator(of, requires=None, affects=None):
                 try:
                     generator = providers[of]
                 except (KeyError, TypeError):
-                    raise KeyError(u"Must add `{}` to providers for validator `{}`.".format(of, validator_func_name))
+                    raise KeyError("Must add `{}` to providers for validator `{}`.".format(of, validator_func_name))
 
                 for row, object_data in generator(obj):
                     assert object_data is None or isinstance(object_data, dict), \
-                        u"Object data returned from provider must be None or dict of values, but got {}".format(
+                        "Object data returned from provider must be None or dict of values, but got {}".format(
                             type(object_data))
 
                     if affects:
@@ -143,8 +143,8 @@ def format_results(validator_results):
         message = err.pop('message')
         description = err.pop('description', '(no description)')
 
-        therest = u', '.join(u'{}={}'.format(x,y) for x,y in err.items())
-        return u'{} {} {} {}'.format(level, description, message, therest)
+        therest = ', '.join('{}={}'.format(x,y) for x,y in err.items())
+        return '{} {} {} {}'.format(level, description, message, therest)
 
     return "\n".join((format_result_item(err) for err in validator_results.get_full_results()))
 

@@ -29,12 +29,12 @@ assertions about the data.  They all look basically like this::
 
 @pylidator.validator takes several optional parameters:
 
-    @pylidator.validator(of, requires=None, affects=None)
+@pylidator.validator(of, requires=None, affects=None)
 
-    `of` specifies what provider the validator should use.   The `validate` call needs an item in `providers`
-         that matches `of`.
-    `requires` (optional) can add additional context items, such as the current time or other services that can supply
-         data or settings to the validator.  The requirement is fulfilled by passing `extra_context` to the `validate`
-         call, containing any items that are used in a `requires`.
-    `affects` (optional) is simply passed through to results.  It can be used as guidance for UI/error reporting for
-         helping to resolve any resultant errors.
+`of` specifies what provider the validator should use.   The `validate` call needs an item in `providers`
+     that matches `of`.
+`requires` (optional) can add additional context items, such as the current time or other services that can supply
+     data or settings to the validator.  The requirement is fulfilled by passing `extra_context` to the `validate`
+     call, containing any items that are used in a `requires`.
+`affects` (optional) is simply passed through to results.  It can be used as guidance for UI/error reporting for
+     helping to resolve any resultant errors.
