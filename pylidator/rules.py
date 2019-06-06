@@ -3,6 +3,7 @@ from .utils import yield_all
 
 from six import string_types
 
+
 def any_field_must_be_set(obj, attr, errors):
     """
     Call this method from a `pylidator.validator` to check that at least one of the attributes in `attr` are not None.

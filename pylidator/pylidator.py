@@ -8,12 +8,11 @@ from . import exceptions
 logger = logging.getLogger(__name__)
 
 
-def validate(obj, validators=None, providers=None, extra_context=None,
-            field_name_mapper=None, validation_type=None):
+def validate(obj, validators=None, providers=None, extra_context=None, field_name_mapper=None, validation_type=None):
 
     ledger = ErrorLedger(
-        default_object_data={'validation_type': validation_type},
-        custom_field_name_mapper=field_name_mapper)
+        default_object_data={"validation_type": validation_type}, custom_field_name_mapper=field_name_mapper
+    )
 
     def _process_validator_results(ret, level, object_data, obj):
         """ Process the return of a user-supllied `validator`.  Accepts lists, dicts, and strings. """
@@ -34,7 +33,8 @@ def validate(obj, validators=None, providers=None, extra_context=None,
 
         elif isinstance(ret, dict):
             ledger.add_message(ret, level, object_data)
-            if len(ret) > 0: is_valid = False
+            if len(ret) > 0:
+                is_valid = False
 
         else:
             for error in ret:
@@ -44,10 +44,10 @@ def validate(obj, validators=None, providers=None, extra_context=None,
         return is_valid
 
     validator_func_kwargs = {
-        'obj': obj,
-        'process_validator_results': _process_validator_results,
-        'providers': providers,
-        'extra_context': extra_context,
+        "obj": obj,
+        "process_validator_results": _process_validator_results,
+        "providers": providers,
+        "extra_context": extra_context,
     }
 
     validators_applied = []
@@ -56,11 +56,14 @@ def validate(obj, validators=None, providers=None, extra_context=None,
 
         for v in unique_everseen(level_validators):
             is_valid = v(level=level, **validator_func_kwargs)
-            validators_applied.append("{} {}".format(v.__name__, 'OK' if is_valid else str(level)))
+            validators_applied.append("{} {}".format(v.__name__, "OK" if is_valid else str(level)))
 
-    logger.debug("validate complete ({} err, {} warn): {}".format(
-        len(ledger.get_errors()), len(ledger.get_warnings()), ", ".join(validators_applied)))
-    return ledger #{'is_valid': ledger.is_valid(), 'errors': ledger.get_errors()}
+    logger.debug(
+        "validate complete ({} err, {} warn): {}".format(
+            len(ledger.get_errors()), len(ledger.get_warnings()), ", ".join(validators_applied)
+        )
+    )
+    return ledger  # {'is_valid': ledger.is_valid(), 'errors': ledger.get_errors()}
 
 
 def validator(of, requires=None, affects=None):
@@ -92,7 +95,8 @@ def validator(of, requires=None, affects=None):
                         kwargs[extra_context_item] = extra_context[extra_context_item]
                     except KeyError:
                         raise exceptions.ContextNotAvailableError(
-                            "{} is not available in the validator context.".format(extra_context_item))
+                            "{} is not available in the validator context.".format(extra_context_item)
+                        )
 
             # logger.debug(u'Validating {} of {} (of={}).'.format(validator_func, obj, of))
             is_valid = True
@@ -101,7 +105,7 @@ def validator(of, requires=None, affects=None):
                 ret = validator_func(obj, **kwargs)
                 object_data = {}
                 if affects:
-                    object_data['affects'] = affects
+                    object_data["affects"] = affects
                 is_valid = process_validator_results(ret, level=level, object_data=object_data, obj=obj)
             else:
                 # Use the correct `provider` to find the child object to process with the validator func.
@@ -112,14 +116,16 @@ def validator(of, requires=None, affects=None):
                     raise KeyError("Must add `{}` to providers for validator `{}`.".format(of, validator_func_name))
 
                 for row, object_data in generator(obj):
-                    assert object_data is None or isinstance(object_data, dict), \
-                        "Object data returned from provider must be None or dict of values, but got {}".format(
-                            type(object_data))
+                    assert object_data is None or isinstance(
+                        object_data, dict
+                    ), "Object data returned from provider must be None or dict of values, but got {}".format(
+                        type(object_data)
+                    )
 
                     if affects:
                         if object_data is None:
                             object_data = {}
-                        object_data['affects'] = affects
+                        object_data["affects"] = affects
 
                     ret = validator_func(row, **kwargs)
                     row_is_valid = process_validator_results(ret, level=level, object_data=object_data, obj=row)
@@ -129,6 +135,7 @@ def validator(of, requires=None, affects=None):
             return is_valid
 
         return actually_run_validator_func
+
     return decorator
 
 
@@ -139,12 +146,12 @@ def format_results(validator_results):
     def format_result_item(err):
         err = err.copy()
 
-        level = err.pop('level')
-        message = err.pop('message')
-        description = err.pop('description', '(no description)')
+        level = err.pop("level")
+        message = err.pop("message")
+        description = err.pop("description", "(no description)")
 
-        therest = ', '.join('{}={}'.format(x,y) for x,y in err.items())
-        return '{} {} {} {}'.format(level, description, message, therest)
+        therest = ", ".join("{}={}".format(x, y) for x, y in err.items())
+        return "{} {} {} {}".format(level, description, message, therest)
 
     return "\n".join((format_result_item(err) for err in validator_results.get_full_results()))
 
