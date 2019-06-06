@@ -1,5 +1,4 @@
-pylidator
-=========
+# pylidator
 
 pylidator is a validation framework for Python projects.
 
@@ -7,8 +6,7 @@ Many business systems have complex validation rules.  This library provides a me
 convenience and testability.  A `validator` method is written for each rule (or group of rules), which simply returns a
 list of errors if any are found.
 
-Validators
-----------
+## Validators
 
 A validator method checks the validity of one or a closely-related group of
 assertions about the data.  They all look basically like this::
@@ -27,8 +25,7 @@ assertions about the data.  They all look basically like this::
 
 (Alternately, you can return just a dict of {field: message} items.)
 
-Argument Reference
-------------------
+## Argument Reference
 
 @pylidator.validator takes several optional parameters:
 
