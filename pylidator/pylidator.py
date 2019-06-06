@@ -9,6 +9,14 @@ logger = logging.getLogger(__name__)
 
 
 def validate(obj, validators=None, providers=None, extra_context=None, field_name_mapper=None, validation_type=None):
+    """
+    `obj` is the top-level object requiring validation.
+    `validators` is a dict of {level: list of `@pylidator.validator` objects}
+    `providers` is a dict of {of: func that takes obj and returns an iterable of some subobjects}
+    `extra_context` is a dict of other data that can be injected into `@pylidator.validator` with `requires`.
+    `field_name_mapper` is a string->string func that converts field names given in returned errors into verbose names.
+    `validation_type` is added into the error object.
+    """
 
     ledger = ErrorLedger(
         default_object_data={"validation_type": validation_type}, custom_field_name_mapper=field_name_mapper

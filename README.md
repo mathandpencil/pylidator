@@ -8,27 +8,51 @@ list of errors if any are found.
 ## Validators
 
 A validator method checks the validity of one or a closely-related group of
-assertions about the data.  They all look basically like this:
+assertions about a piece of data.  They all look basically like this:
 
 ```python
-@pylidator.validator(of='something')
-def something_is_true(data):
+@pylidator.validator(of="child")
+def child_is_valid(child):
     messages = []
 
-    if desired_condition_about_field_is_untrue:
-        messages.append({'affected_field': "Should be different like this."}
+    if child['age'] >= 18:
+        messages.append({"age": "Child is too old."}
 
-    if another_desired_condition_about_the_object_is_untrue:
-        messages.append('I wish this changed.')
+    if child['type'] != 'human':
+        messages.append({"type": "Only humans allowed."}
 
     return messages
 ```
 
-(Alternately, you can return just a dict of {field: message} items.)
+(Alternately, you can return just a dict of `{field: message}` items.)
 
-## Argument Reference
+## Validating Something
 
-@pylidator.validator takes several optional parameters:
+Once you have authored some `@pylidator.validator` methods as above, you can use them!  Try this:
+
+```python
+objs = {
+    'name': "Mrs. Teacher's Class",
+    'children': [
+        {'name': "Joe", 'age': 15, 'type': 'human'},
+        {'name': "Sarah", 'age': 19, 'type': 'human'},
+    ]
+}
+
+# Define a provider
+def _provide_child(obj):
+    for i, c in enumerate(obj['children']):
+        yield c, {"description": "Child {}".format(i)}
+
+providers = {"child": _provide_something}  # "child" matches the `of` argument of the `@pylidator.validator`.
+ret = pylidator.validate(objs, {"ERROR": [some_values_are_valid]}, providers=providers)
+```
+
+`child_is_valid` will be invoked once per child, and any that return something truthy will show as an ERROR.
+
+## Function Reference
+
+`@pylidator.validator` decorates any method that will be passed to `pylidator.validate`, and takes several optional parameters:
 
 ```
 @pylidator.validator(of, requires=None, affects=None)
@@ -40,4 +64,15 @@ def something_is_true(data):
      call, containing any items that are used in a `requires`.
 `affects` (optional) is simply passed through to results.  It can be used as guidance for UI/error reporting for
      helping to resolve any resultant errors.
+```
+
+```
+pylidator.validate(obj, validators=None, providers=None, extra_context=None, field_name_mapper=None, validation_type=None)
+
+`obj` is the top-level object requiring validation.
+`validators` is a dict of {level: list of `@pylidator.validator` objects}
+`providers` is a dict of {of: func that takes obj and returns an iterable of some subobjects}
+`extra_context` is a dict of other data that can be injected into `@pylidator.validator` with `requires`.
+`field_name_mapper` is a string->string func that converts field names given in returned errors into verbose names.
+`validation_type` is added as documentation into the error object.
 ```
