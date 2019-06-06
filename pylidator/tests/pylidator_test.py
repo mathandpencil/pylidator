@@ -1,6 +1,7 @@
 import unittest
 
-from pylidator import validate, validator, ContextNotAvailableError
+from pylidator import validate, validator
+from pylidator.exceptions import ContextNotAvailableError
 
 from functools import wraps
 
@@ -54,20 +55,20 @@ _providers = {"base_obj": _provide_base_obj, "child_obj": _provide_child_obj}
 class TestPylidator(unittest.TestCase):
     def test_validator_returns_None_results_in_no_error(self):
         data = TestObj(returns=None)
-        ret = validate(data, [validate_parent], providers=_providers)
+        ret = validate(data, {"ERROR": [validate_parent]}, providers=_providers)
 
         self.assertTrue(data.it_happened)
         self.assertEqual([], ret.get_full_results())
 
     def test_validator_returns_string_results_in_error(self):
         data = TestObj(returns="failed.")
-        ret = validate(data, [validate_parent], providers=_providers)
+        ret = validate(data, {"ERROR": [validate_parent]}, providers=_providers)
         self.assertTrue(data.it_happened)
         self.assertEqual([{"level": "ERROR", "message": "failed.", "validation_type": None}], ret.get_full_results())
 
     def test_validator_returns_array_of_strings_results_in_errors(self):
         data = TestObj(returns=["error one", "error two"])
-        ret = validate(data, [validate_parent], providers=_providers)
+        ret = validate(data, {"ERROR": [validate_parent]}, providers=_providers)
         self.assertEqual(
             [
                 {"level": "ERROR", "message": "error one", "validation_type": None},
@@ -83,7 +84,7 @@ class TestPylidator(unittest.TestCase):
         data.children.append(TestObj(returns=["there", "you"]))
         data.children.append(TestObj(returns=None))
 
-        ret = validate(data, [validate_child], providers=_providers)
+        ret = validate(data, {"ERROR": [validate_child]}, providers=_providers)
         self.assertEqual(
             [
                 {"description": "Child 0", "level": "ERROR", "message": "hi", "validation_type": None},
@@ -98,7 +99,7 @@ class TestPylidator(unittest.TestCase):
         cs = MyContext()
         ret = validate(
             data,
-            [validate_parent_with_constants_service],
+            {"ERROR": [validate_parent_with_constants_service]},
             providers=_providers,
             extra_context={"constants_service": cs},
         )
@@ -111,7 +112,7 @@ class TestPylidator(unittest.TestCase):
         with self.assertRaises(ContextNotAvailableError):
             ret = validate(
                 data,
-                [validate_parent_with_constants_service],
+                {"ERROR": [validate_parent_with_constants_service]},
                 providers=_providers,
                 extra_context={"not_constants_service": cs},
             )
