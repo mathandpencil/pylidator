@@ -27,8 +27,12 @@ assertions about the data.  They all look basically like this::
 
 (Alternately, you can return just a dict of {field: message} items.)
 
+Argument Reference
+------------------
+
 @pylidator.validator takes several optional parameters:
 
+```
 @pylidator.validator(of, requires=None, affects=None)
 
 `of` specifies what provider the validator should use.   The `validate` call needs an item in `providers`
@@ -38,3 +42,4 @@ assertions about the data.  They all look basically like this::
      call, containing any items that are used in a `requires`.
 `affects` (optional) is simply passed through to results.  It can be used as guidance for UI/error reporting for
      helping to resolve any resultant errors.
+```
