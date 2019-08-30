@@ -1,22 +1,22 @@
 import logging
 
 from six import string_types
+from .constants import ERROR, WARNING, LEVELS
 
 logger = logging.getLogger(__name__)
 
-
 class Error(dict):
-    ERROR = "ERROR"
-    WARN = "WARN"
-    WARNING = "WARN"
+    ERROR = ERROR
+    WARN = WARNING
+    WARNING = WARNING
 
-    LEVELS = [ERROR, WARN]
+    LEVELS = [ERROR, WARNING]
 
 
 class ErrorLedger(object):
-    ERROR = "ERROR"
-    WARN = "WARN"
-    WARNING = "WARN"
+    ERROR = ERROR
+    WARN = WARNING
+    WARNING = WARNING
 
     def __init__(self, default_object_data=None, custom_field_name_mapper=None):
         """

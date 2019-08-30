@@ -11,6 +11,8 @@ A validator method checks the validity of one or a closely-related group of
 assertions about a piece of data.  They all look basically like this:
 
 ```python
+import pylidator
+
 @pylidator.validator(of="child")
 def child_is_valid(child):
     messages = []
@@ -31,6 +33,8 @@ def child_is_valid(child):
 Once you have authored some `@pylidator.validator` methods as above, you can use them!  Try this:
 
 ```python
+import pylidator
+
 objs = {
     'name': "Mrs. Teacher's Class",
     'children': [
@@ -45,7 +49,7 @@ def _provide_child(obj):
         yield c, {"description": "Child {}".format(i)}
 
 providers = {"child": _provide_something}  # "child" matches the `of` argument of the `@pylidator.validator`.
-ret = pylidator.validate(objs, {"ERROR": [some_values_are_valid]}, providers=providers)
+ret = pylidator.validate(objs, {pylidator.ERROR: [some_values_are_valid]}, providers=providers)
 ```
 
 `child_is_valid` will be invoked once per child, and any that return something truthy will show as an ERROR.
@@ -67,7 +71,9 @@ ret = pylidator.validate(objs, {"ERROR": [some_values_are_valid]}, providers=pro
 ```
 
 ```
-pylidator.validate(obj, validators=None, providers=None, extra_context=None, field_name_mapper=None, validation_type=None)
+pylidator.validate(
+    obj, validators=None, providers=None, extra_context=None, field_name_mapper=None, 
+    validation_type=None)
 
 `obj` is the top-level object requiring validation.
 `validators` is a dict of {level: list of `@pylidator.validator` objects}
