@@ -25,6 +25,8 @@ def validate(
     `extra_context` is a dict of other data that can be injected into `@pylidator.validator` with `requires`.
     `field_name_mapper` is a string->string func that converts field names given in returned errors into verbose names.
     `validation_type` is added into the error object.
+    `logging` If set fale, disables logging of validation results.
+    `why` String added to logging to identify the logpoint.
     """
 
     ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging)
@@ -89,11 +91,34 @@ def validate(
 
         return is_valid
 
+    global _cached_provided_items
+    _cached_provided_items = {None: [obj]}
+
+    def get_provided_items(of):
+        global _cached_provided_items
+
+        if of in _cached_provided_items:
+            return _cached_provided_items[of]
+
+        # Already in cache...
+        # if of is None:
+        #     return [obj]
+
+        # Use the correct `provider` to find the child object to process with the validator func.
+        # The provider will generate all child objects and call the validator func once per yielded object.
+        try:
+            generator = providers[of]
+        except (KeyError, TypeError):
+            raise KeyError("Must add `{}` to providers for validator `{}`.".format(of, validator_func_name))
+
+        ret = tuple(generator(obj))
+        _cached_provided_items[of] = ret
+        return ret
+
     validator_func_kwargs = {
-        "obj": obj,
         "process_validator_results": _process_validator_results,
-        "providers": providers,
         "extra_context": extra_context,
+        "get_provided_items_f": get_provided_items,
     }
 
     validators_applied = []
@@ -142,7 +167,10 @@ def validator(of, requires=None, affects=None):
         validator_func_name = validator_func.__name__
 
         @wraps(validator_func)
-        def actually_run_validator_func(obj, process_validator_results, providers, extra_context, level):
+        def actually_run_validator_func(process_validator_results, get_provided_items_f, extra_context, level):
+            """ `actually_run_validator_func` gets called directly from `validate` above, once per unique validation method in
+            `validators`.
+            """
             kwargs = {}
             if requires:
                 if isinstance(requires, string_types):
@@ -152,44 +180,34 @@ def validator(of, requires=None, affects=None):
                 for extra_context_item in requires_list:
                     try:
                         kwargs[extra_context_item] = extra_context[extra_context_item]
-                    except KeyError:
+                    except (KeyError, TypeError) as exc:
                         raise exceptions.ContextNotAvailableError(
                             "{} is not available in the validator context.".format(extra_context_item)
                         )
 
             # logger.debug(u'Validating {} of {} (of={}).'.format(validator_func, obj, of))
             is_valid = True
-            if of is None:
-                # If `of` None, no provider needed.  Just call the validator func directly with the object from `validate`.
-                ret = validator_func(obj, **kwargs)
-                object_data = {}
+            for item in get_provided_items_f(of):
+                try:
+                    row, object_data = item
+                except ValueError:
+                    raise ValueError("{} must yield 2-tuples, got {}".format(generator, item))
+                assert object_data is None or isinstance(
+                    object_data, dict
+                ), "Object data returned from provider must be None or dict of values, but got {}".format(
+                    type(object_data)
+                )
+
+                if object_data is None:
+                    object_data = {}
+
                 if affects:
                     object_data["affects"] = affects
-                is_valid = process_validator_results(ret, level=level, object_data=object_data, obj=obj)
-            else:
-                # Use the correct `provider` to find the child object to process with the validator func.
-                # The provider will generate all child objects and call the validator func once per yielded object.
-                try:
-                    generator = providers[of]
-                except (KeyError, TypeError):
-                    raise KeyError("Must add `{}` to providers for validator `{}`.".format(of, validator_func_name))
 
-                for row, object_data in generator(obj):
-                    if object_data is None:
-                        object_data = {}
-                    assert object_data is None or isinstance(
-                        object_data, dict
-                    ), "Object data returned from provider must be None or dict of values, but got {}".format(
-                        type(object_data)
-                    )
-
-                    if affects:
-                        object_data["affects"] = affects
-
-                    ret = validator_func(row, **kwargs)
-                    row_is_valid = process_validator_results(ret, level=level, object_data=object_data, obj=row)
-                    if not row_is_valid:
-                        is_valid = False
+                ret = validator_func(row, **kwargs)
+                row_is_valid = process_validator_results(ret, level=level, object_data=object_data, obj=row)
+                if not row_is_valid:
+                    is_valid = False
 
             return is_valid
 
