@@ -1,24 +1,23 @@
 import logging
 
 from six import string_types
-from .constants import ERROR, WARNING, LEVELS
+from .constants import ERROR, WARN, LEVELS
 
 logger = logging.getLogger(__name__)
 
+
 class Error(dict):
     ERROR = ERROR
-    WARN = WARNING
-    WARNING = WARNING
+    WARN = WARN
 
-    LEVELS = [ERROR, WARNING]
+    LEVELS = [ERROR, WARN]
 
 
 class ErrorLedger(object):
     ERROR = ERROR
-    WARN = WARNING
-    WARNING = WARNING
+    WARN = WARN
 
-    def __init__(self, default_object_data=None, custom_field_name_mapper=None):
+    def __init__(self, default_object_data=None, logging=True):
         """
         `custom_field_name_mapper` is an optional callable that takes the field name and returns
             a verbose_name for the field.
@@ -26,16 +25,17 @@ class ErrorLedger(object):
         self._errors = []
         self._is_valid = True
         self._default_object_data = default_object_data if default_object_data is not None else {}
-        self._custom_field_name_mapper = custom_field_name_mapper
+        self._logging = logging
+        self._already_logged = set()
 
-    def create_error_object(self, message, level, object_data=None):
+    @staticmethod
+    def create_error_object(message, level, object_data=None):
         if isinstance(message, dict):
             assert len(message) == 1, "Don't currently support multi key dicts inside lists."
 
             for field_name, error in message.items():
-                verbose_name = self.map_field_name_to_verbose_name(field_name)
-                error = "{}: {}".format(verbose_name, error)
-                new_item = Error({"message": error, "field": field_name, "verbose_name": verbose_name})
+                error = "{}: {}".format(field_name, error)
+                new_item = Error({"message": error, "field": field_name})
                 break
 
         elif isinstance(message, string_types):
@@ -50,16 +50,12 @@ class ErrorLedger(object):
 
         return new_item
 
-    def map_field_name_to_verbose_name(self, field_name):
-        verbose_name = None
+    def merge_with(self, other_ledger):
+        assert isinstance(other_ledger, ErrorLedger)
 
-        if self._custom_field_name_mapper is not None:
-            verbose_name = self._custom_field_name_mapper(field_name)
-        if verbose_name is None:
-            from titlecase import titlecase
-
-            verbose_name = titlecase(" ".join(field_name.split("_")))
-        return verbose_name
+        self._errors += other_ledger._errors
+        self._is_valid = self._is_valid and other_ledger._is_valid
+        self._already_logged = self._already_logged.union(other_ledger._already_logged)
 
     def add_message(self, message, level, object_data=None):
         new_item = self.create_error_object(message, level, object_data)
@@ -74,7 +70,12 @@ class ErrorLedger(object):
         new_item["level"]
         new_item["message"]
 
-        logger.debug("{} {}".format(new_item["level"], new_item["message"]))
+        if self._logging:
+            log_message = "{} {}".format(new_item["level"], new_item["message"])
+            # It is annoying when it writes the same msg a million times...
+            if log_message not in self._already_logged:
+                logger.debug(log_message)
+                self._already_logged.add(log_message)
 
         self._errors.append(new_item)
         if new_item["level"] == self.ERROR:
@@ -87,7 +88,7 @@ class ErrorLedger(object):
         return list(unique_everseen([e["message"] for e in self._errors if e["level"] == e.ERROR]))
 
     def get_descriptive_error_messages(self):
-        return list(["{} {}".format(e["description"], e["message"]) for e in self._errors if e["level"] == e.ERROR])
+        return list(["{} {}".format(e.get("description"), e["message"]) for e in self._errors if e["level"] == e.ERROR])
 
     def get_warning_messages(self):
         return list(unique_everseen([e["message"] for e in self._errors if e["level"] == e.WARN]))

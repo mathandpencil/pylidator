@@ -8,7 +8,16 @@ from . import exceptions
 logger = logging.getLogger(__name__)
 
 
-def validate(obj, validators=None, providers=None, extra_context=None, field_name_mapper=None, validation_type=None):
+def validate(
+    obj,
+    validators=None,
+    providers=None,
+    extra_context=None,
+    field_name_mapper=None,
+    validation_type=None,
+    logging=True,
+    why="",
+):
     """
     `obj` is the top-level object requiring validation.
     `validators` is a dict of {level: list of `@pylidator.validator` objects}
@@ -18,12 +27,10 @@ def validate(obj, validators=None, providers=None, extra_context=None, field_nam
     `validation_type` is added into the error object.
     """
 
-    ledger = ErrorLedger(
-        default_object_data={"validation_type": validation_type}, custom_field_name_mapper=field_name_mapper
-    )
+    ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging)
 
     def _process_validator_results(ret, level, object_data, obj):
-        """ Process the return of a user-supllied `validator`.  Accepts lists, dicts, and strings. """
+        """ Process the return of a user-supplied `validator`.  Accepts lists, dicts, and strings. """
 
         # The first object in the tuple is the one being validated
         if isinstance(obj, tuple):
@@ -40,14 +47,45 @@ def validate(obj, validators=None, providers=None, extra_context=None, field_nam
             is_valid = False
 
         elif isinstance(ret, dict):
-            ledger.add_message(ret, level, object_data)
-            if len(ret) > 0:
+            for field_name, error in list(ret.items()):
+                # verbose_field_name = ledger.map_field_name_to_verbose_name(obj, field_name)
+                object_data_with_field = object_data.copy()
+                object_data_with_field["field"] = field_name
+                if field_name_mapper is None:
+                    # raise RuntimeError("A field_name_mapper was not supplied to this validator.")
+                    verbose_name = None
+                else:
+                    verbose_name = field_name_mapper(real_obj, field_name)
+                if verbose_name is None:
+                    from titlecase import titlecase
+
+                    verbose_name = titlecase(" ".join(field_name.split("_")))
+
+                object_data_with_field["verbose_name"] = verbose_name
+                error = "{}: {}".format(verbose_name, error)
+                ledger.add_message(error, level, object_data_with_field)
                 is_valid = False
 
         else:
-            for error in ret:
-                ledger.add_message(error, level, object_data)
-                is_valid = False
+            for validator_ret_item in ret:
+                if isinstance(validator_ret_item, str):
+                    ledger.add_message(validator_ret_item, level, object_data)
+                    is_valid = False
+                elif isinstance(validator_ret_item, dict):
+                    for field_name, error in list(validator_ret_item.items()):
+                        # verbose_field_name = ledger.map_field_name_to_verbose_name(obj, field_name)
+                        object_data_with_field = object_data.copy()
+                        object_data_with_field["field"] = field_name
+                        verbose_name = field_name_mapper(real_obj, field_name)
+                        if verbose_name is None:
+                            from titlecase import titlecase
+
+                            verbose_name = titlecase(" ".join(field_name.split("_")))
+
+                        object_data_with_field["verbose_name"] = verbose_name
+                        error = "{}: {}".format(verbose_name, error)
+                        ledger.add_message(error, level, object_data_with_field)
+                        is_valid = False
 
         return is_valid
 
@@ -66,12 +104,25 @@ def validate(obj, validators=None, providers=None, extra_context=None, field_nam
             is_valid = v(level=level, **validator_func_kwargs)
             validators_applied.append("{} {}".format(v.__name__, "OK" if is_valid else str(level)))
 
-    logger.debug(
-        "validate complete ({} err, {} warn): {}".format(
-            len(ledger.get_errors()), len(ledger.get_warnings()), ", ".join(validators_applied)
-        )
-    )
-    return ledger  # {'is_valid': ledger.is_valid(), 'errors': ledger.get_errors()}
+    if logging:
+        if why:
+            why = why.strip() + ": "
+        else:
+            why = ""
+        if len(ledger.get_errors()) + len(ledger.get_warnings()) == 0:
+            logger.debug(
+                "{}validate complete ({} err, {} warn)".format(
+                    why, len(ledger.get_errors()), len(ledger.get_warnings())
+                )
+            )
+        else:
+            logger.debug(
+                "{}validate complete ({} err, {} warn): {}".format(
+                    why, len(ledger.get_errors()), len(ledger.get_warnings()), ", ".join(validators_applied)
+                )
+            )
+
+    return ledger
 
 
 def validator(of, requires=None, affects=None):
@@ -124,6 +175,8 @@ def validator(of, requires=None, affects=None):
                     raise KeyError("Must add `{}` to providers for validator `{}`.".format(of, validator_func_name))
 
                 for row, object_data in generator(obj):
+                    if object_data is None:
+                        object_data = {}
                     assert object_data is None or isinstance(
                         object_data, dict
                     ), "Object data returned from provider must be None or dict of values, but got {}".format(
@@ -131,8 +184,6 @@ def validator(of, requires=None, affects=None):
                     )
 
                     if affects:
-                        if object_data is None:
-                            object_data = {}
                         object_data["affects"] = affects
 
                     ret = validator_func(row, **kwargs)
