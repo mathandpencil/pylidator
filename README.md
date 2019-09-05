@@ -81,4 +81,6 @@ pylidator.validate(
 `extra_context` is a dict of other data that can be injected into `@pylidator.validator` with `requires`.
 `field_name_mapper` is a string->string func that converts field names given in returned errors into verbose names.
 `validation_type` is added as documentation into the error object.
+`logging` If set to False, disables logging of validation results.
+`why` String added to logging to identify the logpoint.
 ```
