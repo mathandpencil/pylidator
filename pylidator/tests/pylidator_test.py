@@ -82,14 +82,34 @@ class TestPylidator(unittest.TestCase):
 
         data.children.append(TestObj(returns="hi"))
         data.children.append(TestObj(returns=["there", "you"]))
+        data.children.append(TestObj(returns={"field1": ["Error 1", "Error 2"], "field2": "Error 3"}))
         data.children.append(TestObj(returns=None))
 
         ret = pylidator.validate(data, {pylidator.ERROR: [validate_child]}, providers=_providers)
+        import pprint
+
+        pprint.pprint(ret.get_full_results())
         self.assertEqual(
             [
                 {"description": "Child 0", "level": "ERROR", "message": "hi", "validation_type": None},
                 {"description": "Child 1", "level": "ERROR", "message": "there", "validation_type": None},
                 {"description": "Child 1", "level": "ERROR", "message": "you", "validation_type": None},
+                {
+                    "description": "Child 2",
+                    "field": "field1",
+                    "level": "ERROR",
+                    "message": "Field1: ['Error 1', 'Error 2']",
+                    "validation_type": None,
+                    "verbose_name": "Field1",
+                },
+                {
+                    "description": "Child 2",
+                    "field": "field2",
+                    "level": "ERROR",
+                    "message": "Field2: Error 3",
+                    "validation_type": None,
+                    "verbose_name": "Field2",
+                },
             ],
             ret.get_full_results(),
         )
