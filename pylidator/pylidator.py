@@ -17,6 +17,7 @@ def validate(
     validation_type=None,
     logging=True,
     why="",
+    include_field_name_in_message=True,
 ):
     """
     `obj` is the top-level object requiring validation.
@@ -27,6 +28,7 @@ def validate(
     `validation_type` is added into the error object.
     `logging` If set to False, disables logging of validation results.
     `why` String added to logging to identify the logpoint.
+    `include_field_name_in_message` If false, the field name will not be part of the formatted error message.
     """
 
     ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging)
@@ -64,7 +66,10 @@ def validate(
                     verbose_name = titlecase(" ".join(field_name.split("_")))
 
                 object_data_with_field["verbose_name"] = verbose_name
-                error = "{}: {}".format(verbose_name, error)
+                if include_field_name_in_message:
+                    error = "{}: {}".format(verbose_name, error)
+                else:
+                    error = "{}".format(error)
                 ledger.add_message(error, level, object_data_with_field)
                 is_valid = False
 
@@ -85,7 +90,11 @@ def validate(
                             verbose_name = titlecase(" ".join(field_name.split("_")))
 
                         object_data_with_field["verbose_name"] = verbose_name
-                        error = "{}: {}".format(verbose_name, error)
+                        if include_field_name_in_message:
+                            error = "{}: {}".format(verbose_name, error)
+                        else:
+                            error = "{}".format(error)
+                        
                         ledger.add_message(error, level, object_data_with_field)
                         is_valid = False
 
