@@ -124,15 +124,17 @@ def validate(
         _cached_provided_items[of] = ret
         return ret
 
+    validator_cache = {}
     validator_func_kwargs = {
         "process_validator_results": _process_validator_results,
         "extra_context": extra_context,
         "get_provided_items_f": get_provided_items,
+        "validator_cache": validator_cache
     }
 
     validators_applied = []
     for level, level_validators in validators.items():
-        assert level in Error.LEVELS, "Level `{}` is not recognized.".format(level)
+        # assert level in Error.LEVELS, "Level `{}` is not recognized.".format(level)
 
         for v in unique_everseen(level_validators):
             is_valid = v(level=level, **validator_func_kwargs)
@@ -176,7 +178,7 @@ def validator(of, requires=None, affects=None):
         validator_func_name = validator_func.__name__
 
         @wraps(validator_func)
-        def actually_run_validator_func(process_validator_results, get_provided_items_f, extra_context, level):
+        def actually_run_validator_func(process_validator_results, get_provided_items_f, extra_context, validator_cache, level):
             """ `actually_run_validator_func` gets called directly from `validate` above, once per unique validation method in
             `validators`.
             """
@@ -213,7 +215,11 @@ def validator(of, requires=None, affects=None):
                 if affects:
                     object_data["affects"] = affects
 
-                ret = validator_func(row, **kwargs)
+                if validator_cache.get(validator_func.__name__) is None:
+                    ret = validator_func(row, **kwargs)
+                    validator_cache[validator_func.__name__] = ret
+                else:
+                    ret = validator_cache[validator_func.__name__]
                 row_is_valid = process_validator_results(ret, level=level, object_data=object_data, obj=row)
                 if not row_is_valid:
                     is_valid = False
