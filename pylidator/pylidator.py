@@ -132,7 +132,7 @@ def validate(
 
     validators_applied = []
     for level, level_validators in validators.items():
-        assert level in Error.LEVELS, "Level `{}` is not recognized.".format(level)
+        # assert level in Error.LEVELS, "Level `{}` is not recognized.".format(level)
 
         for v in unique_everseen(level_validators):
             is_valid = v(level=level, **validator_func_kwargs)
