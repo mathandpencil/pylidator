@@ -94,17 +94,17 @@ def validate(
                             error = "{}: {}".format(verbose_name, error)
                         else:
                             error = "{}".format(error)
-                        
+
                         ledger.add_message(error, level, object_data_with_field)
                         is_valid = False
 
         return is_valid
 
-    global _cached_provided_items
+    # global _cached_provided_items
     _cached_provided_items = {None: [obj]}
 
     def get_provided_items(of):
-        global _cached_provided_items
+        # global _cached_provided_items
 
         if of in _cached_provided_items:
             return _cached_provided_items[of]
@@ -177,7 +177,7 @@ def validator(of, requires=None, affects=None):
 
         @wraps(validator_func)
         def actually_run_validator_func(process_validator_results, get_provided_items_f, extra_context, level):
-            """ `actually_run_validator_func` gets called directly from `validate` above, once per unique validation method in
+            """`actually_run_validator_func` gets called directly from `validate` above, once per unique validation method in
             `validators`.
             """
             kwargs = {}
