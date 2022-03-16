@@ -31,7 +31,7 @@ def validate(
     `include_field_name_in_message` If false, the field name will not be part of the formatted error message.
     """
 
-    ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging)
+    ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging, validators=validators)
 
     def _process_validator_results(ret, level, object_data, obj):
         """ Process the return of a user-supplied `validator`.  Accepts lists, dicts, and strings. """

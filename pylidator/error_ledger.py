@@ -17,7 +17,7 @@ class ErrorLedger(object):
     ERROR = ERROR
     WARN = WARN
 
-    def __init__(self, default_object_data=None, logging=True):
+    def __init__(self, default_object_data=None, logging=True, validators=None):
         """
         `custom_field_name_mapper` is an optional callable that takes the field name and returns
             a verbose_name for the field.
@@ -27,6 +27,7 @@ class ErrorLedger(object):
         self._default_object_data = default_object_data if default_object_data is not None else {}
         self._logging = logging
         self._already_logged = set()
+        self.validators = validators
 
     @staticmethod
     def create_error_object(message, level, object_data=None):
