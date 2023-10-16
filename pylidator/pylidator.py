@@ -31,10 +31,12 @@ def validate(
     `include_field_name_in_message` If false, the field name will not be part of the formatted error message.
     """
 
-    ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging, validators=validators)
+    ledger = ErrorLedger(
+        default_object_data={"validation_type": validation_type}, logging=logging, validators=validators
+    )
 
     def _process_validator_results(ret, level, object_data, obj):
-        """ Process the return of a user-supplied `validator`.  Accepts lists, dicts, and strings. """
+        """Process the return of a user-supplied `validator`.  Accepts lists, dicts, and strings."""
 
         # The first object in the tuple is the one being validated
         if isinstance(obj, tuple):
@@ -61,7 +63,7 @@ def validate(
                 else:
                     verbose_name = field_name_mapper(real_obj, field_name)
                 if verbose_name is None:
-                    from titlecase import titlecase
+                    from .titlecase import titlecase
 
                     verbose_name = titlecase(" ".join(field_name.split("_")))
 
@@ -85,7 +87,7 @@ def validate(
                         object_data_with_field["field"] = field_name
                         verbose_name = field_name_mapper(real_obj, field_name)
                         if verbose_name is None:
-                            from titlecase import titlecase
+                            from .titlecase import titlecase
 
                             verbose_name = titlecase(" ".join(field_name.split("_")))
 
