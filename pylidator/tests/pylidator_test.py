@@ -136,3 +136,20 @@ class TestPylidator(unittest.TestCase):
                 providers=_providers,
                 extra_context={"not_constants_service": cs},
             )
+
+    def test_validator_returns_array_of_strings_results_in_errors_that_are_unique(self):
+        data = TestObj(returns=["error one", "error one"])
+        ret = pylidator.validate(data, {pylidator.ERROR: [validate_parent]}, providers=_providers)
+        self.assertEqual(
+            [
+                {'validation_type': None, 'message': 'error one', 'level': 'ERROR'},
+                {'validation_type': None, 'message': 'error one', 'level': 'ERROR'}
+            ],
+            ret.get_full_results(),
+        )
+        self.assertEqual(
+            [
+                {'validation_type': None, 'message': 'error one', 'level': 'ERROR'},
+            ],
+            ret.get_errors(),
+        )

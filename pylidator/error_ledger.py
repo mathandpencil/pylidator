@@ -95,7 +95,7 @@ class ErrorLedger(object):
         return list(unique_everseen([e["message"] for e in self._errors if e["level"] == e.WARN]))
 
     def get_errors(self):
-        return [e for e in self._errors if e["level"] == e.ERROR]
+        return ensure_unique_error_list([e for e in self._errors if e["level"] == e.ERROR])
 
     def get_warnings(self):
         return [e for e in self._errors if e["level"] == e.WARN]
@@ -146,3 +146,17 @@ def unique_everseen(iterable, key=None):
             if k not in seen:
                 seen_add(k)
                 yield element
+
+def ensure_unique_error_list(dict_list):
+    # Use a set to track unique frozensets of dictionary items
+    seen = set()
+    unique_dicts = []
+    
+    for d in dict_list:
+        # Convert dictionary items to a frozenset
+        items = frozenset(d.items())
+        if items not in seen:
+            seen.add(items)
+            unique_dicts.append(d)
+    
+    return unique_dicts
