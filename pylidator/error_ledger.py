@@ -94,8 +94,13 @@ class ErrorLedger(object):
     def get_warning_messages(self):
         return list(unique_everseen([e["message"] for e in self._errors if e["level"] == e.WARN]))
 
-    def get_errors(self):
-        return ensure_unique_error_list([e for e in self._errors if e["level"] == e.ERROR])
+    def get_errors(self, unique=True):
+        errors = [e for e in self._errors if e["level"] == e.ERROR]
+        if unique:
+            return ensure_unique_error_list(errors)
+        else:
+            return errors
+
 
     def get_warnings(self):
         return [e for e in self._errors if e["level"] == e.WARN]

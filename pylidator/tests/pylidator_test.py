@@ -153,3 +153,10 @@ class TestPylidator(unittest.TestCase):
             ],
             ret.get_errors(),
         )
+        self.assertEqual(
+            [
+                {'validation_type': None, 'message': 'error one', 'level': 'ERROR'},
+                {'validation_type': None, 'message': 'error one', 'level': 'ERROR'}
+            ],
+            ret.get_errors(unique=False),
+        )
