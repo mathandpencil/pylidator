@@ -28,6 +28,8 @@ class ErrorLedger(object):
         self._logging = logging
         self._already_logged = set()
         self.validators = validators
+        self.error_count = 0
+        self.warning_count = 0
 
     @staticmethod
     def create_error_object(message, level, object_data=None):
@@ -68,9 +70,6 @@ class ErrorLedger(object):
         new_item.update(self._default_object_data)
         new_item.update(new_item_data)
 
-        new_item["level"]
-        new_item["message"]
-
         if self._logging:
             log_message = "{} {}".format(new_item["level"], new_item["message"])
             # It is annoying when it writes the same msg a million times...
@@ -81,6 +80,10 @@ class ErrorLedger(object):
         self._errors.append(new_item)
         if new_item["level"] == self.ERROR:
             self._is_valid = False
+            self.error_count += 1
+
+        elif new_item["level"] == self.WARN:
+            self.warning_count += 1
 
     def get_full_results(self):
         return self._errors
@@ -97,13 +100,20 @@ class ErrorLedger(object):
     def get_errors(self, unique=True):
         errors = [e for e in self._errors if e["level"] == e.ERROR]
         if unique:
-            return ensure_unique_error_list(errors)
+            error_set = ensure_unique_error_list(errors)
+            self.error_count = len(error_set)
+            return error_set
         else:
             return errors
-
-
-    def get_warnings(self):
-        return [e for e in self._errors if e["level"] == e.WARN]
+        
+    def get_warnings(self, unique=True):
+        warnings = [e for e in self._errors if e["level"] == e.WARN]
+        if unique:
+            warning_set = ensure_unique_error_list(warnings)
+            self.warning_count = len(warning_set)
+            return warning_set
+        else:
+            return warnings
 
     def is_valid(self):
         return self._is_valid
