@@ -57,6 +57,8 @@ class ErrorLedger(object):
         assert isinstance(other_ledger, ErrorLedger)
 
         self._errors += other_ledger._errors
+        self.error_count += other_ledger.error_count
+        self.warning_count += other_ledger.warning_count
         self._is_valid = self._is_valid and other_ledger._is_valid
         self._already_logged = self._already_logged.union(other_ledger._already_logged)
 
@@ -104,6 +106,7 @@ class ErrorLedger(object):
             self.error_count = len(error_set)
             return error_set
         else:
+            self.error_count = len(errors)
             return errors
         
     def get_warnings(self, unique=True):
@@ -113,6 +116,7 @@ class ErrorLedger(object):
             self.warning_count = len(warning_set)
             return warning_set
         else:
+            self.warning_count = len(warnings)
             return warnings
 
     def is_valid(self):
