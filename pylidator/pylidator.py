@@ -14,6 +14,7 @@ def validate(
     providers=None,
     extra_context=None,
     field_name_mapper=None,
+    code_getter=None,
     validation_type=None,
     logging=True,
     why="",
@@ -31,7 +32,7 @@ def validate(
     `include_field_name_in_message` If false, the field name will not be part of the formatted error message.
     """
 
-    ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging, validators=validators)
+    ledger = ErrorLedger(default_object_data={"validation_type": validation_type}, logging=logging, validators=validators, code_getter=code_getter)
 
     def _process_validator_results(ret, level, object_data, obj):
         """ Process the return of a user-supplied `validator`.  Accepts lists, dicts, and strings. """
@@ -47,7 +48,7 @@ def validate(
             return is_valid
 
         if isinstance(ret, string_types):
-            ledger.add_message(ret, level, object_data)
+            ledger.add_message(ret, ret, level, object_data)
             is_valid = False
 
         elif isinstance(ret, dict):
@@ -66,17 +67,18 @@ def validate(
                     verbose_name = titlecase(" ".join(field_name.split("_")))
 
                 object_data_with_field["verbose_name"] = verbose_name
+                message_only = error
                 if include_field_name_in_message:
                     error = "{}: {}".format(verbose_name, error)
                 else:
                     error = "{}".format(error)
-                ledger.add_message(error, level, object_data_with_field)
+                ledger.add_message(error, message_only, level, object_data_with_field)
                 is_valid = False
 
         else:
             for validator_ret_item in ret:
                 if isinstance(validator_ret_item, str):
-                    ledger.add_message(validator_ret_item, level, object_data)
+                    ledger.add_message(validator_ret_item, validator_ret_item, level, object_data)
                     is_valid = False
                 elif isinstance(validator_ret_item, dict):
                     for field_name, error in list(validator_ret_item.items()):
@@ -89,13 +91,14 @@ def validate(
 
                             verbose_name = titlecase(" ".join(field_name.split("_")))
 
+                        message_only = error
                         object_data_with_field["verbose_name"] = verbose_name
                         if include_field_name_in_message:
                             error = "{}: {}".format(verbose_name, error)
                         else:
                             error = "{}".format(error)
 
-                        ledger.add_message(error, level, object_data_with_field)
+                        ledger.add_message(error, message_only, level, object_data_with_field)
                         is_valid = False
 
         return is_valid
