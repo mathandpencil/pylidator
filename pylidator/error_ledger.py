@@ -5,6 +5,13 @@ from .constants import ERROR, WARN, LEVELS
 
 logger = logging.getLogger(__name__)
 
+class ErrorItem(dict):
+    message = ""
+    message_only = ""
+    field = None
+    level = ERROR
+    code = None
+    validation_type = None
 
 class Error(dict):
     ERROR = ERROR
@@ -17,10 +24,11 @@ class ErrorLedger(object):
     ERROR = ERROR
     WARN = WARN
 
-    def __init__(self, default_object_data=None, logging=True, validators=None):
+    def __init__(self, default_object_data=None, logging=True, validators=None, code_getter=None):
         """
         `custom_field_name_mapper` is an optional callable that takes the field name and returns
             a verbose_name for the field.
+        `code_getter` is an optional callable that takes an ErrorItem and returns a code for it.
         """
         self._errors = []
         self._is_valid = True
@@ -28,19 +36,20 @@ class ErrorLedger(object):
         self._logging = logging
         self._already_logged = set()
         self.validators = validators
+        self.code_getter = code_getter
 
     @staticmethod
-    def create_error_object(message, level, object_data=None):
+    def create_error_object(message, message_only, level, object_data=None, code_getter=None):
         if isinstance(message, dict):
             assert len(message) == 1, "Don't currently support multi key dicts inside lists."
 
             for field_name, error in message.items():
                 error = "{}: {}".format(field_name, error)
-                new_item = Error({"message": error, "field": field_name})
+                new_item = ErrorItem({"message": error, "message_only": message_only, "field": field_name})
                 break
 
         elif isinstance(message, string_types):
-            new_item = Error({"message": message})
+            new_item = ErrorItem({"message": message, "message_only": message_only})
 
         else:
             raise ValueError("Message is required and must be a string or a dict: {}".format(message))
@@ -48,6 +57,9 @@ class ErrorLedger(object):
         new_item["level"] = level
         if object_data:
             new_item.update(object_data)
+        
+        if code_getter:
+            new_item["code"] = code_getter(new_item)
 
         return new_item
 
@@ -58,13 +70,13 @@ class ErrorLedger(object):
         self._is_valid = self._is_valid and other_ledger._is_valid
         self._already_logged = self._already_logged.union(other_ledger._already_logged)
 
-    def add_message(self, message, level, object_data=None):
-        new_item = self.create_error_object(message, level, object_data)
+    def add_message(self, message, message_only, level, object_data=None):
+        new_item = self.create_error_object(message, message_only, level, object_data, code_getter=self.code_getter)
         new_item.update(self._default_object_data)
         self.add_object(new_item)
 
     def add_object(self, new_item_data):
-        new_item = Error()
+        new_item = ErrorItem()
         new_item.update(self._default_object_data)
         new_item.update(new_item_data)
 
@@ -86,16 +98,16 @@ class ErrorLedger(object):
         return self._errors
 
     def get_error_messages(self):
-        return list(unique_everseen([e["message"] for e in self._errors if e["level"] == e.ERROR]))
+        return list(unique_everseen([e["message"] for e in self._errors if e["level"] == self.ERROR]))
 
     def get_descriptive_error_messages(self):
-        return list(["{} {}".format(e.get("description"), e["message"]) for e in self._errors if e["level"] == e.ERROR])
+        return list(["{} {}".format(e.get("description"), e["message"]) for e in self._errors if e["level"] == self.ERROR])
 
     def get_warning_messages(self):
-        return list(unique_everseen([e["message"] for e in self._errors if e["level"] == e.WARN]))
+        return list(unique_everseen([e["message"] for e in self._errors if e["level"] == self.WARN]))
 
     def get_errors(self, unique=True):
-        errors = [e for e in self._errors if e["level"] == e.ERROR]
+        errors = [e for e in self._errors if e["level"] == self.ERROR]
         if unique:
             return ensure_unique_error_list(errors)
         else:
@@ -103,7 +115,7 @@ class ErrorLedger(object):
 
 
     def get_warnings(self):
-        return [e for e in self._errors if e["level"] == e.WARN]
+        return [e for e in self._errors if e["level"] == self.WARN]
 
     def is_valid(self):
         return self._is_valid
